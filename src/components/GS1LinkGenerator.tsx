@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Copy, Link2, CheckCircle2, Download } from "lucide-react";
+import { Copy, Link2, CheckCircle2, Download, Play } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 interface GS1Data {
@@ -26,6 +27,8 @@ const GS1LinkGenerator = () => {
   
   const [generatedLink, setGeneratedLink] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const validateGTIN = (gtin: string): boolean => {
     if (!gtin) return false;
@@ -112,9 +115,34 @@ const GS1LinkGenerator = () => {
     img.src = "data:image/svg+xml;base64," + btoa(svgData);
   };
 
+  const handleVideoOpen = () => {
+    setIsVideoOpen(true);
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.play();
+      }
+    }, 100);
+  };
+
+  const handleVideoEnded = () => {
+    setIsVideoOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-8">
+        {/* Demo Button */}
+        <div className="flex justify-center pt-4">
+          <Button
+            onClick={handleVideoOpen}
+            className="bg-gradient-primary hover:opacity-90 transition-opacity shadow-glow text-base h-12 px-8"
+            size="lg"
+          >
+            <Play className="w-5 h-5 mr-2" />
+            Демо
+          </Button>
+        </div>
+
         {/* Header */}
         <div className="text-center space-y-4">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-primary shadow-glow mb-4">
@@ -310,6 +338,21 @@ const GS1LinkGenerator = () => {
           </div>
         </Card>
       </div>
+
+      {/* Video Dialog */}
+      <Dialog open={isVideoOpen} onOpenChange={setIsVideoOpen}>
+        <DialogContent className="max-w-4xl p-0 bg-black border-0">
+          <video
+            ref={videoRef}
+            className="w-full h-auto"
+            onEnded={handleVideoEnded}
+            controls
+          >
+            <source src="/demo-video.mp4" type="video/mp4" />
+            Ваш браузер не поддерживает видео.
+          </video>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
