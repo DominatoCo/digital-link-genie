@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Copy, Link2, CheckCircle2, Download, Play } from "lucide-react";
+import { Copy, Link2, CheckCircle2, Download, Play, Plus, X } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 interface GS1Data {
@@ -15,6 +16,48 @@ interface GS1Data {
   batchLot: string;
   expiryDate: string;
 }
+
+interface CustomAI {
+  ai: string;
+  value: string;
+}
+
+const GS1_AI_OPTIONS = [
+  { value: "11", label: "11 - Production Date" },
+  { value: "13", label: "13 - Packaging Date" },
+  { value: "15", label: "15 - Best Before Date" },
+  { value: "240", label: "240 - Additional Product ID" },
+  { value: "241", label: "241 - Customer Part Number" },
+  { value: "242", label: "242 - Made-to-Order Variation" },
+  { value: "250", label: "250 - Secondary Serial Number" },
+  { value: "251", label: "251 - Reference to Source Entity" },
+  { value: "253", label: "253 - GDTI" },
+  { value: "254", label: "254 - GLN Extension" },
+  { value: "30", label: "30 - Variable Count" },
+  { value: "37", label: "37 - Count of Trade Items" },
+  { value: "400", label: "400 - Customer PO Number" },
+  { value: "401", label: "401 - GINC" },
+  { value: "402", label: "402 - GSIN" },
+  { value: "403", label: "403 - Routing Code" },
+  { value: "410", label: "410 - Ship To GLN" },
+  { value: "420", label: "420 - Ship To Postal Code" },
+  { value: "7003", label: "7003 - Expiry Date and Time" },
+  { value: "7007", label: "7007 - Harvest Date" },
+  { value: "8003", label: "8003 - GRAI" },
+  { value: "8004", label: "8004 - GIAI" },
+  { value: "8006", label: "8006 - Trade Item Piece ID" },
+  { value: "8020", label: "8020 - Payment Slip Reference" },
+  { value: "90", label: "90 - Internal Information" },
+  { value: "91", label: "91 - Internal Information" },
+  { value: "92", label: "92 - Internal Information" },
+  { value: "93", label: "93 - Internal Information" },
+  { value: "94", label: "94 - Internal Information" },
+  { value: "95", label: "95 - Internal Information" },
+  { value: "96", label: "96 - Internal Information" },
+  { value: "97", label: "97 - Internal Information" },
+  { value: "98", label: "98 - Internal Information" },
+  { value: "99", label: "99 - Internal Information" },
+];
 
 const GS1LinkGenerator = () => {
   const [data, setData] = useState<GS1Data>({
@@ -28,6 +71,7 @@ const GS1LinkGenerator = () => {
   const [generatedLink, setGeneratedLink] = useState("");
   const [copied, setCopied] = useState(false);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const [customAIs, setCustomAIs] = useState<CustomAI[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const validateGTIN = (gtin: string): boolean => {
@@ -73,8 +117,29 @@ const GS1LinkGenerator = () => {
       }
     }
 
+    // Add custom AIs
+    customAIs.forEach(({ ai, value }) => {
+      if (ai && value) {
+        link += `/${ai}/${encodeURIComponent(value)}`;
+      }
+    });
+
     setGeneratedLink(link);
     toast.success("GS1 Digital Link успешно сгенерирована!");
+  };
+
+  const addCustomAI = () => {
+    setCustomAIs([...customAIs, { ai: "", value: "" }]);
+  };
+
+  const removeCustomAI = (index: number) => {
+    setCustomAIs(customAIs.filter((_, i) => i !== index));
+  };
+
+  const updateCustomAI = (index: number, field: "ai" | "value", newValue: string) => {
+    const updated = [...customAIs];
+    updated[index][field] = newValue;
+    setCustomAIs(updated);
   };
 
   const copyToClipboard = async () => {
@@ -239,6 +304,67 @@ const GS1LinkGenerator = () => {
               <p className="text-sm text-muted-foreground">
                 Формат: ГГММДД (например, 251231 для 31 декабря 2025)
               </p>
+            </div>
+
+            {/* Custom AI Section */}
+            <div className="space-y-4 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">Custom AI</Label>
+                <Button
+                  type="button"
+                  onClick={addCustomAI}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Добавить AI
+                </Button>
+              </div>
+
+              {customAIs.map((customAI, index) => (
+                <div key={index} className="flex gap-2 items-start">
+                  <div className="flex-1 space-y-2">
+                    <Label className="text-sm">AI Идентификатор</Label>
+                    <Select
+                      value={customAI.ai}
+                      onValueChange={(value) => updateCustomAI(index, "ai", value)}
+                    >
+                      <SelectTrigger className="font-mono">
+                        <SelectValue placeholder="Выберите AI" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {GS1_AI_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value} className="font-mono">
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex-1 space-y-2">
+                    <Label className="text-sm">Значение</Label>
+                    <Input
+                      type="text"
+                      placeholder="Введите значение"
+                      value={customAI.value}
+                      onChange={(e) => updateCustomAI(index, "value", e.target.value)}
+                      className="font-mono"
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={() => removeCustomAI(index)}
+                    variant="ghost"
+                    size="icon"
+                    className="mt-8 text-destructive hover:text-destructive"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
 
             {/* Generate Button */}
